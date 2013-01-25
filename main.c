@@ -41,8 +41,8 @@
 #define MAX_CONCURRENCY 4
 
 pthread_mutex_t mutex;
-pthread_cond_t request_condition;
-pthread_cond_t worker_condition;
+pthread_cond_t cond2;
+pthread_cond_t cond;
 RingBuffer rb;
 
 /* 
@@ -86,20 +86,23 @@ server_single_request(int accept_fd)
 
 void *worker(void *thread_argument)
 {
+  printf("created the worker\n");
   while (1) {
+	 	
 	 	pthread_mutex_lock(&mutex);
-	  printf("MAKING ME ROCK\n");
+	  
 	  printf("Buffer size: %d\n", buffer_size(&rb));
 	  
 	  while (buffer_size(&rb) == 0) {
-	  	pthread_cond_wait(&worker_condition, &mutex);
+	  	pthread_cond_wait(&cond, &mutex);
 	  }
-	  int file_descriptor = popit(&rb);
+	  int file_descriptor;
+	  popit(&rb, &file_descriptor);
 	  printf("Have the file file_descriptor %d", file_descriptor);
 	  printf("size is %d \n", buffer_size(&rb));
 	  client_process(file_descriptor);
 	  
-	  pthread_cond_signal(&request_condition);
+	  pthread_cond_signal(&cond2);
 	  pthread_mutex_unlock(&mutex);
   }
 	pthread_exit(0);
@@ -108,30 +111,31 @@ void *worker(void *thread_argument)
 void
 server_thread_pool_bounded(int accept_fd)
 {
+	buffer_init(&rb, MAX_DATA_SZ, sizeof(int));
 	pthread_t threads[MAX_CONCURRENCY];
 	
 	pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&worker_condition, NULL);
-  pthread_cond_init(&request_condition, NULL);
+  pthread_cond_init(&cond, NULL);
+  pthread_cond_init(&cond2, NULL);
 
 	for (int i = 0; i < MAX_CONCURRENCY; ++i)
 	{
-		pthread_create(&threads[i], NULL, worker, (RingBuffer *) &rb);
+		pthread_create(&threads[i], NULL, worker, NULL);
 	}
+
 	int fd;
 	
 	while (1) {
 		pthread_mutex_lock(&mutex);
-		printf("\nWaiting for a connection");
 
 		while (buffer_size(&rb) != 0) {
-			pthread_cond_wait(&request_condition, &mutex);
+			pthread_cond_wait(&cond2, &mutex);
 		}
 		fd = server_accept(accept_fd);
 		push(&fd, &rb);
 
 		pthread_mutex_unlock(&mutex);
-		pthread_cond_signal(&worker_condition);
+		pthread_cond_signal(&cond);
 	}
 	
 
@@ -161,7 +165,7 @@ main(int argc, char *argv[])
 {
 	printf("here\n");
 	
-	// buffer_init(&rb, sizeof(int), MAX_DATA_SZ);
+	
 	// printf("dfdf %d", test());
 	// int test = 378;
 	// push(&test, &rb);

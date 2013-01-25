@@ -2,19 +2,19 @@
 #define RING_BUFFER_H
 
 typedef struct RingBuffer{
-  int count;
-  int *head;
-  int *tail;
-  int *buffer;
-  int *buffer_end;
-  int capacity;
-  int size;
+  void *head;
+  void *tail;
+  void *buffer;
+  void *buffer_end;
+  size_t capacity;
+  size_t count;
+  size_t item_size;
 } RingBuffer;
 
-void buffer_init(RingBuffer *rb, int capacity, int item_size);
+void buffer_init(RingBuffer *rb, size_t capacity, size_t item_size);
 void push(int *file_descriptor, RingBuffer *rb);
 int test();
-int popit(RingBuffer *rb);
+void popit(RingBuffer *rb, void *item);
 int buffer_size(RingBuffer *rb);
 
 #endif

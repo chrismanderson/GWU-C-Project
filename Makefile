@@ -20,7 +20,7 @@ test0:
 
 test1:
 	./server 8080 1 &
-	httperf --port=8080 --server=localhost --num-conns=1000 --burst-len=100
+	httperf --port=8080 --server=localhost --num-conns=1000 --rate=1000 --burst-len=100
 	killall server
 
 test2:
