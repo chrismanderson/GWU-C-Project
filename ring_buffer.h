@@ -11,10 +11,9 @@ typedef struct RingBuffer{
   size_t item_size;
 } RingBuffer;
 
-void buffer_init(RingBuffer *rb, size_t capacity, size_t item_size);
-void push(int *file_descriptor, RingBuffer *rb);
-int test();
-void popit(RingBuffer *rb, void *item);
-int buffer_size(RingBuffer *rb);
+void buffer_init(RingBuffer *ring_buffer, size_t capacity, size_t item_size);
+void push(int *file_descriptor, RingBuffer *ring_buffer);
+void pop(RingBuffer *ring_buffer, void *item);
+int buffer_size(RingBuffer *ring_buffer);
 
 #endif

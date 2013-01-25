@@ -15,8 +15,10 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <fcntl.h>
+#if !defined(__APPLE__)
+	#include <malloc.h>
+#endif
 #include <arpa/inet.h>
-#include <malloc.h>
 #include <unistd.h>
 
 /* 
@@ -52,7 +54,6 @@ server_create(short int port)
 int 
 server_accept(int fd)
 {
-	printf("Server accepting fd\n");
 	struct sockaddr_in sai;
 	int new_fd;
 	unsigned int len = sizeof(sai);

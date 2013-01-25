@@ -41,8 +41,8 @@
 #define MAX_CONCURRENCY 4
 
 pthread_mutex_t mutex;
-pthread_cond_t cond2;
-pthread_cond_t cond;
+pthread_cond_t worker_condition;
+pthread_cond_t request_condition;
 RingBuffer rb;
 
 /* 
@@ -64,7 +64,6 @@ server_single_request(int accept_fd)
 	 */
 
 	 	fd = server_accept(accept_fd);
-	 	printf("file descriptot %d\n", fd);
 		client_process(fd);
 	/* 
 	 * A loop around these two lines will result in multiple
@@ -84,25 +83,23 @@ server_single_request(int accept_fd)
  * cas.h) to do lock-free synchronization on a stack or ring buffer.
  */
 
-void *worker(void *thread_argument)
+/*
+ * Creates a pthread worker, locked based on a condition variable
+ * that checks the file descriptor queue.
+ */
+void *worker()
 {
-  printf("created the worker\n");
   while (1) {
-	 	
 	 	pthread_mutex_lock(&mutex);
 	  
-	  printf("Buffer size: %d\n", buffer_size(&rb));
-	  
-	  while (buffer_size(&rb) == 0) {
-	  	pthread_cond_wait(&cond, &mutex);
+	  while (buffer_size(&rb) == 0 || buffer_size(&rb) == MAX_DATA_SZ) {
+	  	pthread_cond_wait(&request_condition, &mutex);
 	  }
 	  int file_descriptor;
-	  popit(&rb, &file_descriptor);
-	  printf("Have the file file_descriptor %d", file_descriptor);
-	  printf("size is %d \n", buffer_size(&rb));
+	  pop(&rb, &file_descriptor);
 	  client_process(file_descriptor);
-	  
-	  pthread_cond_signal(&cond2);
+	
+	  pthread_cond_signal(&worker_condition);
 	  pthread_mutex_unlock(&mutex);
   }
 	pthread_exit(0);
@@ -111,40 +108,37 @@ void *worker(void *thread_argument)
 void
 server_thread_pool_bounded(int accept_fd)
 {
+	// Sets up the buffers/pthreads/mutexes/condition variables
 	buffer_init(&rb, MAX_DATA_SZ, sizeof(int));
 	pthread_t threads[MAX_CONCURRENCY];
 	
 	pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&cond, NULL);
-  pthread_cond_init(&cond2, NULL);
+  pthread_cond_init(&request_condition, NULL);
+  pthread_cond_init(&worker_condition, NULL);
 
 	for (int i = 0; i < MAX_CONCURRENCY; ++i)
 	{
 		pthread_create(&threads[i], NULL, worker, NULL);
 	}
 
-	int fd;
-	
+	// Starts the main request loop
 	while (1) {
 		pthread_mutex_lock(&mutex);
 
+		// Notifies the main thread a worker has finished.
 		while (buffer_size(&rb) != 0) {
-			pthread_cond_wait(&cond2, &mutex);
+			pthread_cond_wait(&worker_condition, &mutex);
 		}
-		fd = server_accept(accept_fd);
+
+		// Gets the file descriptor and pushes it into the queue
+		int fd = server_accept(accept_fd);
 		push(&fd, &rb);
 
+		// Unlockes the mutex and signals the pthread it can go to town.
 		pthread_mutex_unlock(&mutex);
-		pthread_cond_signal(&cond);
+		pthread_cond_signal(&request_condition);
 	}
 	
-
-    /* initialize data to pass to thread 2 */
-    
-    /* create threads 1 and 2 */    
-    /* pthread_create (&thread1, NULL, (void *) &client_process, (int) fd); */
-// pthread_create (&thread1, NULL, (void *) &create_client_thread, (void *) &fd);
-// pthread_join(thread1, NULL);
 	return;
 }
 
@@ -163,15 +157,6 @@ typedef enum {
 int
 main(int argc, char *argv[])
 {
-	printf("here\n");
-	
-	
-	// printf("dfdf %d", test());
-	// int test = 378;
-	// push(&test, &rb);
-	// int popped = popit(&rb);
-	// printf("dfdf %d",popped); 
-
 	server_type_t server_type;
 	short int port;
 	int accept_fd;

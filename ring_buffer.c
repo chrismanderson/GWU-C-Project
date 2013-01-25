@@ -1,60 +1,58 @@
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
+#if !defined(__APPLE__)
+  #include <malloc.h>
+#endif
 #include "ring_buffer.h"
 
-
-void buffer_init(RingBuffer *rb, size_t capacity, size_t item_size)
+// Initializes the buffer
+void buffer_init(RingBuffer *ring_buffer, size_t capacity, size_t item_size)
 {
-  rb->buffer = malloc(capacity * item_size);
-  // if (rb->buffer == NULL) {
-  //   // something went wrong. whoops
-  // }
-  rb->buffer_end = (char *)rb->buffer + capacity * item_size;
-  rb->capacity = capacity;
-  rb->count = 0;
-  rb->item_size = item_size;
-  rb->head = rb->buffer;
-  rb->tail = rb->buffer;
-  return;
-}
+  ring_buffer->buffer = malloc(capacity * item_size);
 
-void push(int *file_descriptor, RingBuffer *rb)
-{
-  memcpy(rb->head, file_descriptor, rb->item_size);
-  rb->head = (char *)rb->head + rb->item_size;
-  if (rb->head == rb->buffer_end) {
-    rb->head = rb->buffer;
-  }
-  rb->count++;
-  printf("Buffer size is %d", rb->count);
-  return;
-}
-
-int test() 
-{
-  return 3;
-}
-
-void popit(RingBuffer *rb, void *item)
-{
-  if (rb->count == 0) {
+  // Error checking? To be optimized later
+  if (ring_buffer->buffer == NULL) {
     return;
   }
-  // int popped = rb->tail;
-  // printf("Trying to pop\n");
-  memcpy(item, rb->tail, rb->item_size);
-  // printf("Popping value: %d\n", item);
-  rb->tail = (char *)rb->tail + rb->item_size;
-  
-  if (rb->tail == rb->buffer_end) {
-    rb->tail = rb->buffer;
-  }
-  rb->count--;
-  // printf("returning %d\n", (int *)item);
+
+  ring_buffer->buffer_end = (char *)ring_buffer->buffer + capacity * item_size;
+  ring_buffer->capacity = capacity;
+  ring_buffer->count = 0;
+  ring_buffer->item_size = item_size;
+  ring_buffer->head = ring_buffer->buffer;
+  ring_buffer->tail = ring_buffer->buffer;
+  return;
 }
 
-int buffer_size(RingBuffer *rb)
+// Pushes value onto the queue
+void push(int *file_descriptor, RingBuffer *ring_buffer)
 {
-  return rb->count;
+  memcpy(ring_buffer->head, file_descriptor, ring_buffer->item_size);
+  ring_buffer->head = (char *)ring_buffer->head + ring_buffer->item_size;
+  if (ring_buffer->head == ring_buffer->buffer_end) {
+    ring_buffer->head = ring_buffer->buffer;
+  }
+  ring_buffer->count++;
+  return;
+}
+
+
+void pop(RingBuffer *ring_buffer, void *item)
+{
+  if (ring_buffer->count == 0) {
+    return;
+  }
+  memcpy(item, ring_buffer->tail, ring_buffer->item_size);
+  ring_buffer->tail = (char *)ring_buffer->tail + ring_buffer->item_size;
+  
+  if (ring_buffer->tail == ring_buffer->buffer_end) {
+    ring_buffer->tail = ring_buffer->buffer;
+  }
+  ring_buffer->count--;
+}
+
+int buffer_size(RingBuffer *ring_buffer)
+{
+  return ring_buffer->count;
 }
