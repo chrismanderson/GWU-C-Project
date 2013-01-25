@@ -35,7 +35,8 @@
 #include <server.h>		/* server_accept and server_create */
 
 #include <ring_buffer.h>
-// #include <cas.h>
+#include <linked_list.h>
+#include <cas.h>
 
 #define MAX_DATA_SZ 1024
 #define MAX_CONCURRENCY 4
@@ -44,6 +45,8 @@ pthread_mutex_t mutex;
 pthread_cond_t worker_condition;
 pthread_cond_t request_condition;
 RingBuffer rb;
+request_node list;
+
 
 /* 
  * This is the function for handling a _single_ request.  Understand
@@ -142,9 +145,32 @@ server_thread_pool_bounded(int accept_fd)
 	return;
 }
 
+void *cas_worker()
+{
+	while (1) {
+		int file_descriptor;
+		request_node_get(&list, &file_descriptor);
+	}
+}
+
 void
 server_thread_pool_lock_free(int accept_fd)
 {
+	pthread_t threads[MAX_CONCURRENCY];
+	for (int i = 0; i < MAX_CONCURRENCY; ++i)
+	{
+		pthread_create(&threads[i], NULL, cas_worker, NULL);
+	}
+
+	request_node list;
+	request_node_init(&list);
+
+	int fd;
+	fd = server_accept(accept_fd);
+
+	request_node_add(&list, fd);
+	client_process(fd);
+
 	return;
 }
 
