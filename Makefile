@@ -24,6 +24,6 @@ test1:
 	killall server
 
 test2:
-	./server 8080 1 &
-	httperf --port=8080 --server=localhost --num-conns=1000 --burst-len=100
+	./server 8095 1 &
+	httperf --port=8095 --server=localhost --num-conns=1000 --burst-len=100
 	killall server

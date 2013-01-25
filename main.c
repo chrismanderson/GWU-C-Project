@@ -64,6 +64,7 @@ server_single_request(int accept_fd)
 	 */
 
 	 	fd = server_accept(accept_fd);
+	 	printf("file descriptot %d\n", fd);
 		client_process(fd);
 	/* 
 	 * A loop around these two lines will result in multiple
@@ -87,16 +88,17 @@ void *worker(void *thread_argument)
 {
   while (1) {
 	 	pthread_mutex_lock(&mutex);
-	  printf("MAKING ME ROCK");
-	  // printf("%d", rb.count);
+	  printf("MAKING ME ROCK\n");
+	  printf("Buffer size: %d\n", buffer_size(&rb));
 	  
 	  while (buffer_size(&rb) == 0) {
 	  	pthread_cond_wait(&worker_condition, &mutex);
 	  }
 	  int file_descriptor = popit(&rb);
 	  printf("Have the file file_descriptor %d", file_descriptor);
-	  client_process(file_descriptor);
 	  printf("size is %d \n", buffer_size(&rb));
+	  client_process(file_descriptor);
+	  
 	  pthread_cond_signal(&request_condition);
 	  pthread_mutex_unlock(&mutex);
   }

@@ -31,6 +31,7 @@ void push(int *file_descriptor, RingBuffer *rb)
     rb->head = rb->buffer;
   }
   rb->count++;
+  printf("File Descriptor in push is: %d\n", *file_descriptor);
   return;
 }
 
@@ -47,8 +48,8 @@ int popit(RingBuffer *rb)
   int *popped;
   // int popped = rb->tail;
   printf("Trying to pop\n");
-  memcpy(popped, rb->tail, rb->size);
-  printf("Poppinfgg %d\n", *popped);
+  memcpy(&popped, rb->tail, rb->size);
+  printf("Popping value: %d\n", *popped);
   rb->tail = (char *)rb->tail + rb->size;
   
 
@@ -56,8 +57,8 @@ int popit(RingBuffer *rb)
     rb->tail = rb->buffer;
   }
   rb->count--;
-  printf("returning %d\n", *popped);
-  return &popped;
+  printf("returning %d\n", popped);
+  return popped;
 }
 
 int buffer_size(RingBuffer *rb)
