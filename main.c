@@ -95,7 +95,7 @@ void *worker()
   while (1) {
 	 	pthread_mutex_lock(&mutex);
 	  
-	  while (buffer_size(&rb) == 0 || buffer_size(&rb) == MAX_DATA_SZ) {
+	  while (buffer_size(&rb) == 0 || buffer_size(&rb) >= MAX_DATA_SZ) {
 	  	pthread_cond_wait(&request_condition, &mutex);
 	  }
 	  int file_descriptor;
@@ -141,38 +141,51 @@ server_thread_pool_bounded(int accept_fd)
 		pthread_mutex_unlock(&mutex);
 		pthread_cond_signal(&request_condition);
 	}
-	
+	pthread_exit(NULL);
 	return;
 }
 
+/*
+ * Creates a lockless worker that blocks when attempting
+ * to fetch a new request.
+ */ 
 void *cas_worker()
 {
-  request_node *old_request;
   request_node *new_request;
 
-
-	do {
-		new_request = get_request();
-    client_process(old_request->file_descriptor);	
-	} while (__cas((void *)&requests, (long)new_request->file_descriptor, (long)requests->file_descriptor));
+  while (1) {
+  	new_request = get_request();
+  	client_process(new_request->file_descriptor);
+  }
 }
 
+/*
+ * Main function for the lock-less server.
+ */ 
 void
 server_thread_pool_lock_free(int accept_fd)
 {
+	// Initializes the desired number of workers, and initializes
+	// the global requests variable.
 	pthread_t threads[MAX_CONCURRENCY];
+	request_list_init();
+	
 	for (int i = 0; i < MAX_CONCURRENCY; ++i)
 	{
 		pthread_create(&threads[i], NULL, cas_worker, NULL);
 	}
-	request_list_init();
-	int fd = server_accept(accept_fd);
+	
 
+	// Infinite loop that checks for new requests.
+	// Upon receipt of one, 'puts' the new request onto the
+	// request list stack.
   while (1) {
+  	int fd = server_accept(accept_fd);
   	request_node *new_request;
 		new_request = init_node(fd);
 		put_request(new_request);
   }
+  pthread_exit(NULL);
 	return;
 }
 
