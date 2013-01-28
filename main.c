@@ -119,8 +119,7 @@ server_thread_pool_bounded(int accept_fd)
   pthread_cond_init(&request_condition, NULL);
   pthread_cond_init(&worker_condition, NULL);
 
-  int i;
-	for (i = 0; i < MAX_CONCURRENCY; ++i)
+	for (int i = 0; i < MAX_CONCURRENCY; ++i)
 	{
 		pthread_create(&threads[i], NULL, worker, NULL);
 	}
@@ -152,31 +151,26 @@ void *cas_worker()
   request_node *new_request;
 
 
- volatile int var = 0;
- 
-
- int new_var, old_var;
- do {
-     old_var = var;
-     new_var = var;
-     new_var++;
- } while (__cas(&var, old_var, new_var));
+	do {
+		new_request = get_request();
+    client_process(old_request->file_descriptor);	
+	} while (__cas((void *)&requests, (long)new_request->file_descriptor, (long)requests->file_descriptor));
 }
 
 void
 server_thread_pool_lock_free(int accept_fd)
 {
 	pthread_t threads[MAX_CONCURRENCY];
-	int i = 0;
-	for (i; i < MAX_CONCURRENCY; ++i)
+	for (int i = 0; i < MAX_CONCURRENCY; ++i)
 	{
 		pthread_create(&threads[i], NULL, cas_worker, NULL);
 	}
 	request_list_init();
+	int fd = server_accept(accept_fd);
 
   while (1) {
   	request_node *new_request;
-		new_request = init_node(accept_fd);
+		new_request = init_node(fd);
 		put_request(new_request);
   }
 	return;

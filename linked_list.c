@@ -12,9 +12,22 @@ request_node *requests;
 
 request_node* get_request()
 {
-  if (requests->file_descriptor != NULL) {
-    return requests;
+  while (requests->file_descriptor == NULL) {
+    // no nothing
   }
+
+    request_node *temp;
+    temp = requests->next;
+    requests = temp;
+
+    printf("temp fd %d", temp->file_descriptor);
+
+    return requests;
+  // int rta = list->file_descriptor;
+  // printf("rta is %d\n", list->file_descriptor);
+  // *data = rta;
+  // list = list->next;
+
 }
 
 request_node* init_node(int fd)

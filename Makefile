@@ -1,5 +1,5 @@
 OBJS=server.o simple_http.o content.o util.o ring_buffer.o linked_list.o main.o
-CFLAGS=-g -I. -Wall -Wextra -lpthread
+CFLAGS=-g -I. -Wall -Wextra -lpthread -m32 --std=c99
 #DEFINES=-DTHINK_TIME
 BIN=server
 CC=gcc
