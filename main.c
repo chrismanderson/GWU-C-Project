@@ -45,7 +45,7 @@ pthread_mutex_t mutex;
 pthread_cond_t worker_condition;
 pthread_cond_t request_condition;
 RingBuffer rb;
-request_node list;
+// request_node list;
 
 
 /* 
@@ -119,7 +119,8 @@ server_thread_pool_bounded(int accept_fd)
   pthread_cond_init(&request_condition, NULL);
   pthread_cond_init(&worker_condition, NULL);
 
-	for (int i = 0; i < MAX_CONCURRENCY; ++i)
+  int i;
+	for (i = 0; i < MAX_CONCURRENCY; ++i)
 	{
 		pthread_create(&threads[i], NULL, worker, NULL);
 	}
@@ -147,30 +148,37 @@ server_thread_pool_bounded(int accept_fd)
 
 void *cas_worker()
 {
-	while (1) {
-		int file_descriptor;
-		request_node_get(&list, &file_descriptor);
-	}
+  request_node *old_request;
+  request_node *new_request;
+
+
+ volatile int var = 0;
+ 
+
+ int new_var, old_var;
+ do {
+     old_var = var;
+     new_var = var;
+     new_var++;
+ } while (__cas(&var, old_var, new_var));
 }
 
 void
 server_thread_pool_lock_free(int accept_fd)
 {
 	pthread_t threads[MAX_CONCURRENCY];
-	for (int i = 0; i < MAX_CONCURRENCY; ++i)
+	int i = 0;
+	for (i; i < MAX_CONCURRENCY; ++i)
 	{
 		pthread_create(&threads[i], NULL, cas_worker, NULL);
 	}
+	request_list_init();
 
-	request_node list;
-	request_node_init(&list);
-
-	int fd;
-	fd = server_accept(accept_fd);
-
-	request_node_add(&list, fd);
-	client_process(fd);
-
+  while (1) {
+  	request_node *new_request;
+		new_request = init_node(accept_fd);
+		put_request(new_request);
+  }
 	return;
 }
 

@@ -1,5 +1,5 @@
 OBJS=server.o simple_http.o content.o util.o ring_buffer.o linked_list.o main.o
-CFLAGS=-g -I. -std=c99 -Wall -Wextra -pthread
+CFLAGS=-g -I. -Wall -Wextra -lpthread
 #DEFINES=-DTHINK_TIME
 BIN=server
 CC=gcc
@@ -24,6 +24,6 @@ test1:
 	killall server
 
 test2:
-	./server 8080 1 &
+	./server 8080 2 &
 	httperf --port=8080 --server=localhost --num-conns=1000 --burst-len=100
 	killall server
