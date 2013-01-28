@@ -92,7 +92,7 @@ void *worker()
   while (1) {
 	 	pthread_mutex_lock(&mutex);
 	  
-	  while (buffer_size(&rb) == 0 || buffer_size(&rb) == MAX_DATA_SZ) {
+	  while (buffer_size(&rb) == 0 || buffer_size(&rb) >= MAX_DATA_SZ) {
 	  	pthread_cond_wait(&request_condition, &mutex);
 	  }
 	  int file_descriptor;
